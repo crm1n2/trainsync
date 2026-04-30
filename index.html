@@ -28,7 +28,8 @@
     border-radius:12px;padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;
     font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;
     justify-content:center;gap:10px;transition:background .2s,border-color .2s,transform .15s;margin-bottom:16px;}
-  .google-btn:hover{background:rgba(255,255,255,.09);border-color:var(--a1);transform:translateY(-1px);}
+  .google-btn:hover:not(:disabled){background:rgba(255,255,255,.09);border-color:var(--a1);transform:translateY(-1px);}
+  .google-btn:disabled{opacity:.5;cursor:not-allowed;}
   .google-btn svg{width:18px;height:18px;flex-shrink:0;}
   .divider{display:flex;align-items:center;gap:12px;margin:4px 0 16px;}
   .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -159,9 +160,9 @@
   <div class="login-box">
     <div class="login-logo">Train<span>Sync</span></div>
     <div class="login-tagline">Live Google Sheets Training Dashboard</div>
-    <button class="google-btn" id="googleBtn" onclick="signInWithGoogle()">
+    <button class="google-btn" id="googleBtn" onclick="signInWithGoogle()" disabled>
       <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-      Continue with Google
+      ⏳ Loading Google…
     </button>
     <div class="divider"><span>or use local account</span></div>
     <div class="field-label">Username</div>
@@ -213,7 +214,7 @@
       <div style="overflow-x:auto">
         <table>
           <thead><tr><th>#</th><th>Staff No</th><th>Name</th><th>Program</th><th>Training Date</th><th>Days</th><th>Remarks</th></tr></thead>
-          <tbody id="tableBody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Fetching from Google Sheets…</div></td></tr></tbody>
+          <tbody id="tableBody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div>Loading…</div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -240,78 +241,53 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ══════════════════════════
-   YOUR CONFIG — EDIT THESE
-══════════════════════════ */
+/* ── CONFIG ── */
 const CLIENT_ID = '762683092500-h9k8ca71mj85ki33lq2iibq4faub83jp.apps.googleusercontent.com';
 const SHEET_ID  = '1LhjQ3sL0P3oky0KwJK70RE_krI0RCBXotEl1XCd_dV8';
 const SHEET_TAB = 'Form Responses 1';
-/* ══════════════════════════ */
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
 
-const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
-const DISCOVERY = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
 const LOCAL_USERS = {admin:'admin123',trainer:'train2026'};
 const COLORS = ['var(--a1)','var(--a2)','var(--a3)','var(--a4)','var(--a5)','#f093fb','#f5576c','#4facfe'];
 const BADGE_CLS = ['badge-purple','badge-pink','badge-green','badge-orange','badge-teal','badge-purple','badge-pink','badge-green'];
-let gapiReady = false, allData = [], isGoogleUser = false;
 
-/* ── LOAD GAPI ── */
-function loadGapi() {
-  const btn = document.getElementById('googleBtn');
-  btn.textContent = '⏳ Loading Google…';
-  btn.disabled = true;
-  btn.style.opacity = '0.6';
-  btn.style.cursor = 'not-allowed';
+let accessToken = null, tokenClient = null, allData = [], isGoogle = false;
 
-  const s = document.createElement('script');
-  s.src = 'https://apis.google.com/js/api.js';
-  s.onload = () => {
-    gapi.load('client:auth2', async () => {
-      try {
-        await gapi.client.init({
-          clientId: CLIENT_ID,
-          discoveryDocs: [DISCOVERY],
-          scope: SCOPES,
-        });
-        gapiReady = true;
-        // Re-enable button
-        btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;flex-shrink:0"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google';
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.style.cursor = 'pointer';
-        // Check if already signed in
-        const auth = gapi.auth2.getAuthInstance();
-        if (auth.isSignedIn.get()) {
-          const profile = auth.currentUser.get().getBasicProfile();
-          onGoogleSignedIn(profile);
-        }
-      } catch(e) {
-        btn.textContent = '❌ Google init failed — reload page';
-        console.error('GAPI init error:', e);
+/* ── GOOGLE IDENTITY SERVICES ── */
+function initGIS() {
+  // tokenClient requests an access token via popup — no redirect needed
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (response) => {
+      if (response.error) {
+        showToast('❌ Google auth error: ' + response.error, 'error');
+        return;
       }
-    });
-  };
-  s.onerror = () => {
-    btn.textContent = '❌ Failed to load Google — check internet';
-  };
-  document.head.appendChild(s);
+      accessToken = response.access_token;
+      isGoogle = true;
+      // Get user info
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      })
+      .then(r => r.json())
+      .then(u => {
+        showApp(u.name || u.email, u.picture);
+      })
+      .catch(() => showApp('Google User', null));
+    },
+  });
+
+  // Enable the button
+  const btn = document.getElementById('googleBtn');
+  btn.disabled = false;
+  btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:18px;height:18px;flex-shrink:0"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
 }
 
-async function signInWithGoogle() {
-  if (!gapiReady) { showToast('⏳ Google loading, try again in a moment', 'info'); return; }
-  try {
-    const auth = gapi.auth2.getAuthInstance();
-    await auth.signIn();
-    const profile = auth.currentUser.get().getBasicProfile();
-    onGoogleSignedIn(profile);
-  } catch(e) {
-    showToast('❌ Sign-in failed: ' + (e.error || e.message || e), 'error');
-  }
-}
-
-function onGoogleSignedIn(profile) {
-  isGoogleUser = true;
-  showApp(profile.getName(), profile.getImageUrl());
+function signInWithGoogle() {
+  if (!tokenClient) { showToast('⏳ Still loading, please wait…', 'info'); return; }
+  // prompt:'select_account' shows the account picker popup
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
 /* ── LOCAL AUTH ── */
@@ -341,10 +317,8 @@ function showApp(name, picture) {
 }
 
 function doLogout() {
-  isGoogleUser = false;
-  if (gapiReady) {
-    try { gapi.auth2.getAuthInstance().signOut(); } catch(e){}
-  }
+  accessToken = null; isGoogle = false;
+  if (window.google) google.accounts.oauth2.revoke(accessToken, () => {});
   sessionStorage.clear();
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -354,41 +328,48 @@ function doLogout() {
 async function loadSheetData() {
   setSyncing(true);
   try {
-    if (isGoogleUser && gapiReady) {
-      const res = await gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: `${SHEET_TAB}!A:G`,
-      });
-      const rows = res.result.values || [];
-      allData = rows.slice(1).map(r => ({
+    if (isGoogle && accessToken) {
+      const range = encodeURIComponent(`${SHEET_TAB}!A:G`);
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.error?.message || res.status);
+      }
+      const json = await res.json();
+      allData = (json.values || []).slice(1).map(r => ({
         ts: r[0]||'', date: r[1]||'', days: parseInt(r[2])||0,
         staff: r[3]||'', name: (r[4]||'').trim(),
         program: (r[5]||'').trim(), remarks: r[6]||'',
       }));
-      showToast(`✓ ${allData.length} records synced`, 'success');
+      showToast(`✓ ${allData.length} records synced from Google Sheets`, 'success');
     } else {
       allData = getFallback();
       showToast('ℹ️ Demo data — sign in with Google for live data', 'info');
     }
     buildDashboard(allData);
     document.getElementById('subTitle').textContent =
-      `Last synced ${new Date().toLocaleTimeString()} · ${allData.length} records · ${isGoogleUser ? 'Google Sheets live' : 'demo mode'}`;
+      `Last synced ${new Date().toLocaleTimeString()} · ${allData.length} records · ${isGoogle ? 'Google Sheets live' : 'demo mode'}`;
   } catch(e) {
     console.error(e);
     if (!allData.length) allData = getFallback();
     buildDashboard(allData);
-    showToast('⚠️ Sheets error: ' + (e.result?.error?.message || e.message || e), 'error');
+    showToast('⚠️ Sheets error: ' + e.message, 'error');
   }
   setSyncing(false);
 }
 
 async function appendToSheet(row) {
-  await gapi.client.sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: `${SHEET_TAB}!A:G`,
-    valueInputOption: 'USER_ENTERED',
-    resource: { values: [row] },
-  });
+  const range = encodeURIComponent(`${SHEET_TAB}!A:G`);
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`,
+    { method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [row] }) }
+  );
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
 }
 
 function refreshData() { document.getElementById('syncLabel').textContent='Syncing…'; loadSheetData(); }
@@ -492,7 +473,7 @@ async function submitRecord(){
   btn.disabled=true;btn.textContent='Saving…';
   try{
     const row=[new Date().toLocaleString('en-IN'),new Date(date).toLocaleDateString('en-GB'),days,staff,name,program,remarks||''];
-    if(isGoogleUser){
+    if(isGoogle && accessToken){
       await appendToSheet(row);
       showToast('✓ Saved to Google Sheets!','success');
       setTimeout(()=>loadSheetData(),1500);
@@ -503,7 +484,7 @@ async function submitRecord(){
     }
     closeAddModal();
     ['f_staff','f_name','f_program','f_date','f_days','f_remarks'].forEach(id=>document.getElementById(id).value='');
-  }catch(e){showToast('❌ '+(e.result?.error?.message||e.message||e),'error');}
+  }catch(e){showToast('❌ '+e.message,'error');}
   btn.disabled=false;btn.textContent='Save to Sheet';
 }
 
@@ -515,8 +496,19 @@ function showToast(msg,type='info'){
 }
 
 /* ── INIT ── */
+// Load Google Identity Services script
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = initGIS;
+  s.onerror = () => {
+    document.getElementById('googleBtn').textContent = '❌ Google failed to load';
+  };
+  document.head.appendChild(s);
+})();
+
+// Restore local session
 window.addEventListener('load', () => {
-  loadGapi();
   const lu = sessionStorage.getItem('ts_local');
   if (lu && LOCAL_USERS[lu]) showApp(lu, null);
 });
