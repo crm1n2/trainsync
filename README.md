@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TrainSync — Live Google Sheets Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
   :root{--bg:#0a0a12;--card:#1a1a2e;--border:#2a2a45;
     --a1:#7c5cfc;--a2:#fc5c7d;--a3:#43e97b;--a4:#f7971e;--a5:#38f9d7;
@@ -16,8 +15,6 @@
     background:radial-gradient(ellipse 60% 50% at 20% 10%,rgba(124,92,252,.18) 0%,transparent 70%),
                radial-gradient(ellipse 50% 40% at 80% 80%,rgba(252,92,125,.12) 0%,transparent 70%),
                radial-gradient(ellipse 40% 60% at 60% 30%,rgba(67,233,123,.07) 0%,transparent 70%);}
-
-  /* LOGIN */
   #loginScreen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg);}
   .login-box{background:var(--card);border:1px solid var(--border);border-radius:24px;
     padding:48px 44px;width:100%;max-width:420px;
@@ -27,23 +24,25 @@
   .login-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:28px;letter-spacing:-1px;margin-bottom:6px;}
   .login-logo span{color:var(--a1);}
   .login-tagline{color:var(--muted);font-size:13px;margin-bottom:28px;}
+  .google-btn{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);
+    border-radius:12px;padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;
+    font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:10px;transition:background .2s,border-color .2s,transform .15s;margin-bottom:16px;}
+  .google-btn:hover{background:rgba(255,255,255,.09);border-color:var(--a1);transform:translateY(-1px);}
+  .google-btn svg{width:18px;height:18px;flex-shrink:0;}
+  .divider{display:flex;align-items:center;gap:12px;margin:4px 0 16px;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+  .divider span{color:var(--muted);font-size:12px;}
   .field-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
   .login-input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
     border-radius:12px;padding:13px 16px;color:var(--text);font-family:'DM Sans',sans-serif;
-    font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:16px;}
+    font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:14px;}
   .login-input:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(124,92,252,.2);}
-  .divider{display:flex;align-items:center;gap:12px;margin:18px 0;}
-  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
-  .divider span{color:var(--muted);font-size:12px;}
-  /* Google GIS button container */
-  #gSignInBtn{display:flex;justify-content:center;margin-bottom:10px;}
   .login-btn{width:100%;background:linear-gradient(135deg,var(--a1),#5a3fc0);border:none;
     border-radius:12px;padding:14px;color:#fff;font-family:'Syne',sans-serif;font-weight:700;
-    font-size:15px;cursor:pointer;letter-spacing:.04em;transition:transform .15s,box-shadow .2s;margin-top:4px;}
+    font-size:15px;cursor:pointer;letter-spacing:.04em;transition:transform .15s,box-shadow .2s;}
   .login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(124,92,252,.5);}
   .login-err{color:var(--a2);font-size:13px;margin-top:10px;min-height:18px;text-align:center;}
-
-  /* TOPBAR */
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 36px;
     border-bottom:1px solid var(--border);background:rgba(10,10,18,.8);backdrop-filter:blur(16px);
     position:sticky;top:0;z-index:50;}
@@ -53,7 +52,7 @@
   .top-right{display:flex;align-items:center;gap:12px;}
   .sync-badge{display:flex;align-items:center;gap:6px;background:rgba(67,233,123,.1);
     border:1px solid rgba(67,233,123,.25);border-radius:20px;padding:6px 13px;
-    font-size:12px;color:var(--a3);font-weight:500;cursor:pointer;transition:all .2s;}
+    font-size:12px;color:var(--a3);font-weight:500;cursor:pointer;}
   .sync-dot{width:7px;height:7px;background:var(--a3);border-radius:50%;animation:pulse 2s infinite;}
   .sync-badge.syncing .sync-dot{animation:spin .8s linear infinite;background:var(--a4);}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
@@ -67,14 +66,10 @@
   .logout-btn{background:none;border:1px solid var(--border);border-radius:8px;
     padding:6px 13px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;}
   .logout-btn:hover{border-color:var(--a2);color:var(--a2);}
-
-  /* MAIN */
   #app{display:none;min-height:100vh;position:relative;z-index:1;}
   .main{padding:32px 36px;}
   .page-title{font-family:'Syne',sans-serif;font-weight:800;font-size:30px;letter-spacing:-1.5px;margin-bottom:4px;}
   .page-subtitle{color:var(--muted);font-size:13px;margin-bottom:32px;}
-
-  /* STATS */
   .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:32px;}
   .stat-card{background:var(--card);border:1px solid var(--border);border-radius:18px;
     padding:22px 20px;position:relative;overflow:hidden;transition:transform .2s;animation:slideUp .5s ease both;}
@@ -87,10 +82,7 @@
   .stat-icon{font-size:24px;margin-bottom:10px;}
   .stat-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px;}
   .stat-value{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;letter-spacing:-2px;}
-  .stat-value.c1{color:var(--a1)}.stat-value.c2{color:var(--a2)}
-  .stat-value.c3{color:var(--a3)}.stat-value.c4{color:var(--a4)}
-
-  /* CHARTS */
+  .stat-value.c1{color:var(--a1)}.stat-value.c2{color:var(--a2)}.stat-value.c3{color:var(--a3)}.stat-value.c4{color:var(--a4)}
   .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px;}
   @media(max-width:768px){.charts-row{grid-template-columns:1fr}.topbar{padding:14px 18px}.main{padding:22px 18px}}
   .panel{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;animation:slideUp .6s ease both;}
@@ -106,10 +98,7 @@
   .pie-legend{display:flex;flex-direction:column;gap:9px;}
   .legend-item{display:flex;align-items:center;gap:7px;font-size:12px;}
   .legend-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
-  .legend-name{color:var(--muted);}
-  .legend-val{font-weight:600;margin-left:4px;}
-
-  /* TABLE */
+  .legend-name{color:var(--muted);}.legend-val{font-weight:600;margin-left:4px;}
   .table-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
   .search-box{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;
     padding:9px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;
@@ -128,8 +117,6 @@
   .badge-green{background:rgba(67,233,123,.15);color:var(--a3);border:1px solid rgba(67,233,123,.2)}
   .badge-orange{background:rgba(247,151,30,.15);color:var(--a4);border:1px solid rgba(247,151,30,.2)}
   .badge-teal{background:rgba(56,249,215,.15);color:var(--a5);border:1px solid rgba(56,249,215,.2)}
-
-  /* MODAL */
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;
     display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
   .modal-bg.hidden{display:none;}
@@ -141,9 +128,8 @@
   .form-field.full{grid-column:1/-1;}
   .form-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
   .form-input{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;
-    padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;
-    outline:none;transition:border-color .2s;}
-  .form-input:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(124,92,252,.15);}
+    padding:11px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+  .form-input:focus{border-color:var(--a1);}
   .modal-footer{display:flex;gap:10px;margin-top:22px;justify-content:flex-end;}
   .cancel-btn{background:none;border:1px solid var(--border);border-radius:10px;padding:10px 20px;
     color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;}
@@ -153,7 +139,6 @@
     cursor:pointer;transition:transform .15s,box-shadow .2s;}
   .submit-btn:hover,.add-btn:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(124,92,252,.5);}
   .submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-
   .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:var(--muted);font-size:14px;}
   .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--a1);border-radius:50%;animation:spin .7s linear infinite;}
   .toast{position:fixed;bottom:24px;right:24px;background:var(--card);border-radius:12px;
@@ -164,20 +149,20 @@
   .toast.success{border:1px solid rgba(67,233,123,.3);color:var(--a3);}
   .toast.error{border:1px solid rgba(252,92,125,.3);color:var(--a2);}
   .toast.info{border:1px solid rgba(124,92,252,.3);color:var(--a1);}
-
   @keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
   @keyframes rowIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">Train<span>Sync</span></div>
     <div class="login-tagline">Live Google Sheets Training Dashboard</div>
-    <!-- Google Identity Services button renders here -->
-    <div id="gSignInBtn"></div>
+    <button class="google-btn" id="googleBtn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Continue with Google
+    </button>
     <div class="divider"><span>or use local account</span></div>
     <div class="field-label">Username</div>
     <input class="login-input" id="uname" type="text" placeholder="admin" autocomplete="username">
@@ -189,7 +174,6 @@
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <div class="topbar">
     <div class="logo">Train<span>Sync</span><sub>● Sheets Live</sub></div>
@@ -236,7 +220,6 @@
   </div>
 </div>
 
-<!-- ADD RECORD MODAL -->
 <div class="modal-bg hidden" id="addModal">
   <div class="modal">
     <div class="modal-title">➕ Add Training Record</div>
@@ -254,79 +237,62 @@
     </div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-/* ══════════════════════════════════════
-   ▼▼  PASTE YOUR VALUES HERE  ▼▼
-══════════════════════════════════════ */
-const CLIENT_ID = '762683092500-h9k8ca71mj85ki33lq2iibq4faub83jp.apps.googleusercontent.com'; // e.g. 762683092500-xxx.apps.googleusercontent.com
+/* ══════════════════════════
+   YOUR CONFIG — EDIT THESE
+══════════════════════════ */
+const CLIENT_ID = '762683092500-h9k8ca71mj85ki33lq2iibq4faub83jp.apps.googleusercontent.com';
 const SHEET_ID  = '1LhjQ3sL0P3oky0KwJK70RE_krI0RCBXotEl1XCd_dV8';
 const SHEET_TAB = 'Form Responses 1';
-/* ══════════════════════════════════════
-   ▲▲  NOTHING ELSE NEEDS CHANGING  ▲▲
-══════════════════════════════════════ */
+/* ══════════════════════════ */
 
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
-let accessToken = null, tokenExpiry = 0, allData = [];
-const COLORS=['var(--a1)','var(--a2)','var(--a3)','var(--a4)','var(--a5)','#f093fb','#f5576c','#4facfe'];
-const BADGE_CLS=['badge-purple','badge-pink','badge-green','badge-orange','badge-teal','badge-purple','badge-pink','badge-green'];
-const LOCAL_USERS={admin:'admin123',trainer:'train2026'};
+const DISCOVERY = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
+const LOCAL_USERS = {admin:'admin123',trainer:'train2026'};
+const COLORS = ['var(--a1)','var(--a2)','var(--a3)','var(--a4)','var(--a5)','#f093fb','#f5576c','#4facfe'];
+const BADGE_CLS = ['badge-purple','badge-pink','badge-green','badge-orange','badge-teal','badge-purple','badge-pink','badge-green'];
+let gapiReady = false, allData = [], isGoogleUser = false;
 
-/* ── GOOGLE IDENTITY SERVICES (modern, no implicit flow) ── */
-let tokenClient;
-
-function initGoogleAuth() {
-  if (!window.google) { setTimeout(initGoogleAuth, 300); return; }
-  // Render the Google sign-in button
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: handleIdToken,
-    auto_select: false,
-  });
-  google.accounts.id.renderButton(document.getElementById('gSignInBtn'), {
-    theme: 'filled_black',
-    size: 'large',
-    width: 332,
-    text: 'continue_with',
-    shape: 'rectangular',
-  });
-
-  // Token client for Sheets API access
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPES,
-    callback: (resp) => {
-      if (resp.error) { showToast('❌ Auth error: ' + resp.error, 'error'); return; }
-      accessToken = resp.access_token;
-      tokenExpiry = Date.now() + (resp.expires_in * 1000);
-      loadSheetData();
-    },
-  });
+/* ── LOAD GAPI ── */
+function loadGapi() {
+  const s = document.createElement('script');
+  s.src = 'https://apis.google.com/js/api.js';
+  s.onload = () => {
+    gapi.load('client:auth2', async () => {
+      await gapi.client.init({
+        clientId: CLIENT_ID,
+        discoveryDocs: [DISCOVERY],
+        scope: SCOPES,
+      });
+      gapiReady = true;
+      // Check if already signed in
+      const auth = gapi.auth2.getAuthInstance();
+      if (auth.isSignedIn.get()) {
+        const profile = auth.currentUser.get().getBasicProfile();
+        onGoogleSignedIn(profile);
+      }
+    });
+  };
+  document.head.appendChild(s);
 }
 
-// Called after Google Sign-In button click — gets identity token then requests Sheets access
-function handleIdToken(credentialResponse) {
-  // Decode basic user info from JWT
-  const payload = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
-  sessionStorage.setItem('ts_google_user', JSON.stringify({name: payload.name, picture: payload.picture, email: payload.email}));
-  showApp(payload.name, payload.picture);
-  // Now request Sheets API token silently
-  tokenClient.requestAccessToken({prompt: ''});
+async function signInWithGoogle() {
+  if (!gapiReady) { showToast('⏳ Google loading, try again in a moment', 'info'); return; }
+  try {
+    const auth = gapi.auth2.getAuthInstance();
+    await auth.signIn();
+    const profile = auth.currentUser.get().getBasicProfile();
+    onGoogleSignedIn(profile);
+  } catch(e) {
+    showToast('❌ Sign-in failed: ' + (e.error || e.message || e), 'error');
+  }
 }
 
-function ensureToken() {
-  return new Promise((resolve) => {
-    if (accessToken && Date.now() < tokenExpiry - 60000) { resolve(); return; }
-    tokenClient.callback = (resp) => {
-      if (resp.error) { showToast('❌ Re-auth failed', 'error'); return; }
-      accessToken = resp.access_token;
-      tokenExpiry = Date.now() + (resp.expires_in * 1000);
-      resolve();
-    };
-    tokenClient.requestAccessToken({prompt: ''});
-  });
+function onGoogleSignedIn(profile) {
+  isGoogleUser = true;
+  showApp(profile.getName(), profile.getImageUrl());
 }
 
 /* ── LOCAL AUTH ── */
@@ -348,16 +314,18 @@ document.getElementById('uname').addEventListener('keydown', e => { if(e.key==='
 function showApp(name, picture) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  document.getElementById('usernameDisplay').textContent = name.split(' ')[0];
+  document.getElementById('usernameDisplay').textContent = (name||'User').split(' ')[0];
   const av = document.getElementById('userAvatar');
-  av.innerHTML = picture ? `<img src="${picture}" alt="">` : `<span>${name[0].toUpperCase()}</span>`;
+  av.innerHTML = picture ? `<img src="${picture}" alt="">` : `<span>${(name||'U')[0].toUpperCase()}</span>`;
   loadSheetData();
   setInterval(refreshData, 60000);
 }
 
 function doLogout() {
-  accessToken = null;
-  if (window.google) google.accounts.id.disableAutoSelect();
+  isGoogleUser = false;
+  if (gapiReady) {
+    try { gapi.auth2.getAuthInstance().signOut(); } catch(e){}
+  }
   sessionStorage.clear();
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
@@ -367,46 +335,41 @@ function doLogout() {
 async function loadSheetData() {
   setSyncing(true);
   try {
-    if (accessToken) {
-      await ensureToken();
-      allData = await fetchFromSheets();
+    if (isGoogleUser && gapiReady) {
+      const res = await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: SHEET_ID,
+        range: `${SHEET_TAB}!A:G`,
+      });
+      const rows = res.result.values || [];
+      allData = rows.slice(1).map(r => ({
+        ts: r[0]||'', date: r[1]||'', days: parseInt(r[2])||0,
+        staff: r[3]||'', name: (r[4]||'').trim(),
+        program: (r[5]||'').trim(), remarks: r[6]||'',
+      }));
       showToast(`✓ ${allData.length} records synced`, 'success');
     } else {
       allData = getFallback();
-      showToast('ℹ️ Demo data — sign in with Google for live Sheets', 'info');
+      showToast('ℹ️ Demo data — sign in with Google for live data', 'info');
     }
     buildDashboard(allData);
     document.getElementById('subTitle').textContent =
-      `Last synced ${new Date().toLocaleTimeString()} · ${allData.length} records · ${accessToken ? 'Google Sheets live' : 'demo mode'}`;
+      `Last synced ${new Date().toLocaleTimeString()} · ${allData.length} records · ${isGoogleUser ? 'Google Sheets live' : 'demo mode'}`;
   } catch(e) {
+    console.error(e);
     if (!allData.length) allData = getFallback();
     buildDashboard(allData);
-    showToast('⚠️ ' + e.message, 'error');
+    showToast('⚠️ Sheets error: ' + (e.result?.error?.message || e.message || e), 'error');
   }
   setSyncing(false);
 }
 
-async function fetchFromSheets() {
-  const range = encodeURIComponent(`${SHEET_TAB}!A:G`);
-  const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`,
-    {headers: {Authorization: `Bearer ${accessToken}`}});
-  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
-  const json = await res.json();
-  return (json.values || []).slice(1).map(r => ({
-    ts: r[0]||'', date: r[1]||'', days: parseInt(r[2])||0,
-    staff: r[3]||'', name: (r[4]||'').trim(),
-    program: (r[5]||'').trim(), remarks: r[6]||'',
-  }));
-}
-
 async function appendToSheet(row) {
-  await ensureToken();
-  const range = encodeURIComponent(`${SHEET_TAB}!A:G`);
-  const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED`,
-    {method:'POST', headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},
-     body: JSON.stringify({values: [row]})});
-  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
+  await gapi.client.sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_TAB}!A:G`,
+    valueInputOption: 'USER_ENTERED',
+    resource: { values: [row] },
+  });
 }
 
 function refreshData() { document.getElementById('syncLabel').textContent='Syncing…'; loadSheetData(); }
@@ -415,7 +378,7 @@ function setSyncing(on) {
   document.getElementById('syncBadge').classList.toggle('syncing', on);
 }
 
-/* ── FALLBACK DATA ── */
+/* ── FALLBACK ── */
 function getFallback() {
   return [
     {date:"20/4/2026",days:3,staff:"876253",name:"Rahul Kumar",program:"Basic Electricity & Circuit Diagram",remarks:"."},
@@ -510,7 +473,7 @@ async function submitRecord(){
   btn.disabled=true;btn.textContent='Saving…';
   try{
     const row=[new Date().toLocaleString('en-IN'),new Date(date).toLocaleDateString('en-GB'),days,staff,name,program,remarks||''];
-    if(accessToken){
+    if(isGoogleUser){
       await appendToSheet(row);
       showToast('✓ Saved to Google Sheets!','success');
       setTimeout(()=>loadSheetData(),1500);
@@ -521,7 +484,7 @@ async function submitRecord(){
     }
     closeAddModal();
     ['f_staff','f_name','f_program','f_date','f_days','f_remarks'].forEach(id=>document.getElementById(id).value='');
-  }catch(e){showToast('❌ '+e.message,'error');}
+  }catch(e){showToast('❌ '+(e.result?.error?.message||e.message||e),'error');}
   btn.disabled=false;btn.textContent='Save to Sheet';
 }
 
@@ -534,14 +497,9 @@ function showToast(msg,type='info'){
 
 /* ── INIT ── */
 window.addEventListener('load', () => {
-  initGoogleAuth();
+  loadGapi();
   const lu = sessionStorage.getItem('ts_local');
   if (lu && LOCAL_USERS[lu]) showApp(lu, null);
-  const gu = sessionStorage.getItem('ts_google_user');
-  if (gu) {
-    const u = JSON.parse(gu);
-    showApp(u.name, u.picture);
-  }
 });
 </script>
 </body>
