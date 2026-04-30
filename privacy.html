@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — TrainSync</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0a12;--card:#1a1a2e;--border:#2a2a45;--a1:#7c5cfc;--text:#e8e8f0;--muted:#6b6b8a;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding:60px 24px;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse 60% 50% at 20% 10%,rgba(124,92,252,.12) 0%,transparent 70%);}
+  .container{max-width:720px;margin:0 auto;position:relative;z-index:1;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;letter-spacing:-1px;margin-bottom:8px;}
+  .logo span{color:var(--a1);}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;
+    text-decoration:none;margin-bottom:32px;transition:color .2s;}
+  .back:hover{color:var(--a1);}
+  h1{font-family:'Syne',sans-serif;font-weight:800;font-size:32px;letter-spacing:-1.5px;margin-bottom:8px;}
+  .updated{color:var(--muted);font-size:13px;margin-bottom:40px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px 32px;margin-bottom:18px;}
+  h2{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--a1);margin-bottom:12px;}
+  p{font-size:14px;line-height:1.8;color:#c8c8d8;margin-bottom:10px;}
+  p:last-child{margin-bottom:0;}
+  ul{padding-left:20px;margin-bottom:10px;}
+  li{font-size:14px;line-height:1.8;color:#c8c8d8;margin-bottom:4px;}
+  .highlight{background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:10px;
+    padding:14px 18px;font-size:14px;color:#c8c8d8;line-height:1.8;margin-bottom:18px;}
+  .contact{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--a1);}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">Train<span>Sync</span></div>
+  <a class="back" href="https://crm1n2.github.io/trainsync">← Back to Dashboard</a>
+
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: May 1, 2026</div>
+
+  <div class="highlight">
+    TrainSync is an internal training records dashboard. We do not sell, share, or misuse your data in any way. This policy explains exactly what we access and why.
+  </div>
+
+  <div class="card">
+    <h2>1. What We Access</h2>
+    <p>When you sign in with Google, TrainSync requests access to:</p>
+    <ul>
+      <li><strong>Your basic Google profile</strong> — name and profile picture, used only to display your name in the dashboard header</li>
+      <li><strong>Google Sheets (read & write)</strong> — used to read and write training records to a specific Google Sheet owned by your organisation</li>
+    </ul>
+    <p>We do not access your Gmail, Google Drive files, contacts, calendar, or any other Google services.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. How We Use Your Data</h2>
+    <ul>
+      <li>Your name and photo are displayed in the dashboard UI only — they are never stored on any server</li>
+      <li>Your Google access token is stored in your browser's session storage and expires automatically when you close the tab</li>
+      <li>Training records you add are written directly to the organisation's Google Sheet — no third-party servers are involved</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>3. Data Storage</h2>
+    <p>TrainSync has no backend server and no database of its own. All training data is stored exclusively in Google Sheets, which is governed by Google's own privacy policy and terms of service.</p>
+    <p>No personal data is stored on GitHub Pages or any other external server.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. Data Sharing</h2>
+    <p>We do not share your personal data with any third parties. The only external service this app communicates with is Google's own APIs (accounts.google.com and sheets.googleapis.com).</p>
+  </div>
+
+  <div class="card">
+    <h2>5. Cookies & Tracking</h2>
+    <p>TrainSync does not use cookies. It does not track your usage, behaviour, or location. There are no analytics, advertisements, or tracking scripts of any kind.</p>
+  </div>
+
+  <div class="card">
+    <h2>6. Your Rights</h2>
+    <p>You can sign out at any time using the Sign out button, which immediately clears your session. You can also revoke TrainSync's access to your Google account at any time by visiting <a href="https://myaccount.google.com/permissions" style="color:var(--a1);">myaccount.google.com/permissions</a>.</p>
+  </div>
+
+  <div class="card">
+    <h2>7. Contact</h2>
+    <p>If you have any questions about this privacy policy, please contact:</p>
+    <p class="contact">crmzone2.e@gmail.com</p>
+  </div>
+
+</div>
+</body>
+</html>
