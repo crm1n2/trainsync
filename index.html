@@ -286,16 +286,10 @@ function doLogout() {
 async function loadSheetData() {
   setSyncing(true);
   try {
-    const range = encodeURIComponent(`${SHEET_TAB}!A:G`);
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${API_KEY}`;
-    const res = await fetch(url);
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
+    const res = await fetch(SCRIPT_URL);
     const json = await res.json();
-    allData = (json.values || []).slice(1).map(r => ({
-      ts: r[0]||'', date: r[1]||'', days: parseInt(r[2])||0,
-      staff: r[3]||'', name: (r[4]||'').trim(),
-      program: (r[5]||'').trim(), remarks: r[6]||'',
-    }));
+    if (json.result !== 'success') throw new Error(json.message || 'Script error');
+    allData = json.data || [];
     buildDashboard(allData);
     document.getElementById('subTitle').textContent =
       `Last synced ${new Date().toLocaleTimeString()} · ${allData.length} records · Google Sheets live`;
