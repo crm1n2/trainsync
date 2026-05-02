@@ -245,8 +245,10 @@
    CONFIG — DO NOT SHARE PUBLICLY
 ══════════════════════════════════ */
 const API_KEY   = 'AIzaSyABTlzimfQ9u_tQse-v-BRkKwhrLsmDX90';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz7b7AZPBp0GPC9eXIG1iB4T57Ru1lhZ1_lVFP5TcphiOVI8bqS61ZCuyYuoIHmubE7Mw/exec';
 const SHEET_ID  = '1LhjQ3sL0P3oky0KwJK70RE_krI0RCBXotEl1XCd_dV8';
 const SHEET_TAB = 'Form Responses 1';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMMBLdJQhieo9AKBr00L4AY-VHwydlSGrD9jidKyxwe_rOaQVUogvSxALMgfyD8xQvYA/exec';
 const PASSWORD  = 'CrmTraining';
 /* ══════════════════════════════════ */
 
@@ -306,14 +308,21 @@ async function loadSheetData() {
 }
 
 async function appendToSheet(row) {
-  const range = encodeURIComponent(`${SHEET_TAB}!A:G`);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
-  const res = await fetch(url, {
+  const payload = {
+    ts:      row[0],
+    date:    row[1],
+    days:    row[2],
+    staff:   row[3],
+    name:    row[4],
+    program: row[5],
+    remarks: row[6],
+  };
+  const res = await fetch(SCRIPT_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [row] })
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || res.status); }
+  const json = await res.json();
+  if (json.result !== 'success') throw new Error(json.message || 'Script error');
 }
 
 function setSyncing(on) {
