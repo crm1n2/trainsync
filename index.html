@@ -488,12 +488,19 @@ async function loadData() {
       const get = (idx) => {
         if (!c || !c[idx] || c[idx].v === null || c[idx].v === undefined) return '';
         const v = c[idx].v;
+        const f = c[idx].f; // formatted value from Google
         // Google returns dates as "Date(year,month,day)" strings
+        // month is 0-indexed in this format!
         if (typeof v === 'string' && v.startsWith('Date(')) {
           const parts = v.replace('Date(','').replace(')','').split(',');
-          const d = new Date(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-          return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+          const year  = parseInt(parts[0]);
+          const month = parseInt(parts[1]); // 0-indexed
+          const day   = parseInt(parts[2]);
+          // month+1 because it's 0-indexed
+          return `${String(day).padStart(2,'0')}/${String(month+1).padStart(2,'0')}/${year}`;
         }
+        // Use formatted value if available (Google already formatted it)
+        if (f && typeof f === 'string' && /\d{1,2}\/\d{1,2}\/\d{4}/.test(f)) return f;
         return String(v).trim();
       };
       return {
@@ -540,35 +547,45 @@ function parseDate(str) {
   if (!str || str === '—') return null;
   str = str.trim();
 
-  // ISO YYYY-MM-DD — extract directly, no timezone shift
+  // ISO YYYY-MM-DD — unambiguous, use directly
   if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
     const iso = str.substring(0,10).split('-');
     const d = new Date(parseInt(iso[0]), parseInt(iso[1])-1, parseInt(iso[2]));
     return isNaN(d) ? null : d;
   }
 
-  // DD/MM/YYYY or MM/DD/YYYY — detect which format
+  // DD/MM/YYYY or MM/DD/YYYY
   const parts = str.split("/");
   if (parts.length === 3 && parts[2].length === 4) {
-    const p0 = parseInt(parts[0]);
-    const p1 = parseInt(parts[1]);
-    const p2 = parseInt(parts[2]);
-    // If first part > 12, must be DD/MM/YYYY (day can't be a month)
-    // If second part > 12, must be MM/DD/YYYY (month can't be a day > 12)
-    // If both <= 12, assume MM/DD/YYYY since Google Sheets typically uses this
-    // BUT our toDate in Netlify proxy always outputs DD/MM/YYYY from ISO
-    // So check: if result gives a future date, try swapping
-    let d = new Date(p2, p1-1, p0); // try DD/MM/YYYY first
-    if (!isNaN(d)) {
-      // If date is in the future and swapped version is in the past, use swap
-      if (d > new Date() && p0 <= 12) {
-        const swapped = new Date(p2, p0-1, p1); // try MM/DD/YYYY
-        if (!isNaN(swapped) && swapped <= new Date()) {
-          return swapped;
-        }
-      }
-      return d;
+    const p0 = parseInt(parts[0]); // could be day or month
+    const p1 = parseInt(parts[1]); // could be month or day
+    const p2 = parseInt(parts[2]); // year
+
+    // Rule 1: if p0 > 12, it MUST be day → DD/MM/YYYY
+    if (p0 > 12) {
+      const d = new Date(p2, p1-1, p0);
+      return isNaN(d) ? null : d;
     }
+    // Rule 2: if p1 > 12, it MUST be day → MM/DD/YYYY
+    if (p1 > 12) {
+      const d = new Date(p2, p0-1, p1);
+      return isNaN(d) ? null : d;
+    }
+    // Rule 3: both <= 12 — ambiguous. 
+    // Google Sheets gviz returns dates as Date(year,month,day) which we convert to DD/MM/YYYY
+    // BUT if that gives a future date, try MM/DD/YYYY
+    const tryDDMM = new Date(p2, p1-1, p0); // DD/MM/YYYY
+    const tryMMDD = new Date(p2, p0-1, p1); // MM/DD/YYYY
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    if (tryDDMM > today && tryMMDD <= today) return tryMMDD; // swap gives past = correct
+    if (tryMMDD > today && tryDDMM <= today) return tryDDMM; // original gives past = correct
+    // Both in past or both in future — prefer the one closer to today in the past
+    if (tryDDMM <= today && tryMMDD <= today) {
+      return tryDDMM >= tryMMDD ? tryDDMM : tryMMDD;
+    }
+    return tryDDMM; // default
   }
 
   const d = new Date(str);
